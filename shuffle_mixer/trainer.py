@@ -16,10 +16,11 @@ def loss_fn(upsamled, expected):
     residuals = upsamled - expected
     loss_p = torch.sum(torch.abs(residuals))
 
-    upsampled_freq = torch.fft.fft2(upsamled)
-    expected_freq = torch.fft.fft2(expected)
-    freq_residuals = upsampled_freq - expected_freq
-    loss_f = torch.sum(torch.abs(freq_residuals))
+    upsampled_freq = torch.fft.rfft2(upsamled)
+    expected_freq = torch.fft.rfft2(expected)
+    upsampled_freq = torch.stack([upsampled_freq.real, upsampled_freq.imag], dim=-1)
+    expected_freq = torch.stack([expected_freq.real, expected_freq.imag], dim=-1)
+    loss_f = torch.sum(torch.abs(upsampled_freq - expected_freq))
 
     return loss_p + weight * loss_f
 
@@ -49,42 +50,48 @@ class Trainer:
 
         self.writer = SummaryWriter(summary_path)
 
-        self.train = data_loader(train_path, scale_factor, batch_size, lr_size, workers)
-        self.valid = data_loader(valid_path, scale_factor, batch_size, lr_size, workers)
+        self.train = data_loader(train_path, scale_factor, batch_size, lr_size, workers, iterations)
+        self.valid = data_loader(valid_path, scale_factor, batch_size, lr_size, workers, 1)
 
         self.loss_iterations = loss_iterations
         self.val_iterations = val_iterations
         self.plot_iterations = plot_iterations
 
+        self.lr_size = lr_size
+        self.hr_size = scale_factor * lr_size
+
+        self.iterator = None
+
     def iteration(self):
 
-        loss = 0
+        data, target = next(self.iterator)
+        hr_truth = target.to(self.device)
+        lr = data.to(self.device)
 
-        np.random.seed()
-        for data, target in iter(self.train):
-            hr_truth = target.to(self.device)
-            lr = data.to(self.device)
+        self.optimizer.zero_grad()
 
-            self.optimizer.zero_grad()
+        hr_estimate = self.model(lr)
 
-            hr_estimate = self.model(lr)
+        loss = loss_fn(hr_estimate, hr_truth) / self.batch_size
+        loss.backward()
 
-            loss = loss_fn(hr_estimate, hr_truth) / self.batch_size
-            loss.backward()
-
-            self.optimizer.step()
+        self.optimizer.step()
 
         return loss
 
     def plot_image(self, step):
 
-        np.random.seed()
         lr, hr_truth = next(iter(self.train))
+        lr = lr.to(self.device)
         hr_truth = hr_truth.to(self.device)
         hr_estimate = self.model(lr)
 
+        lr_nearest = torchvision.transforms.functional.resize(lr, self.hr_size, torchvision.transforms.InterpolationMode.NEAREST)
+        lr_bicubic = torchvision.transforms.functional.resize(lr, self.hr_size, torchvision.transforms.InterpolationMode.BICUBIC)
+
         self.writer.add_images("Example/HR Truth", hr_truth, step)
-        self.writer.add_images("Example/LR", lr, step)
+        self.writer.add_images("Example/LR Nearest", lr_nearest, step)
+        self.writer.add_images("Example/LR Bicubic", lr_bicubic, step)
         self.writer.add_images("Example/HR Estimate", hr_estimate, step)
 
     def validate(self):
@@ -109,6 +116,8 @@ class Trainer:
         start = datetime.now()
 
         print(f'Training starting at {start}')
+
+        self.iterator = iter(self.train)
 
         for iteration in range(self.iterations):
 

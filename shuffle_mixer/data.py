@@ -10,8 +10,8 @@ from torchvision import transforms
 from torchvision.transforms.functional import convert_image_dtype
 
 
-def data_loader(folder, scale, batch_size, lr_size, workers):
-    dataset = UpsampleDataset(folder, scale, batch_size, lr_size)
+def data_loader(folder, scale, batch_size, lr_size, workers, steps):
+    dataset = UpsampleDataset(folder, scale, batch_size, lr_size, steps)
     loader = DataLoader(dataset, batch_size=batch_size, num_workers=workers)
 
     return loader
@@ -19,7 +19,7 @@ def data_loader(folder, scale, batch_size, lr_size, workers):
 
 class UpsampleDataset(Dataset):
 
-    def __init__(self, folder, scale, batch_size, lr_size):
+    def __init__(self, folder, scale, batch_size, lr_size, steps):
 
         if scale == 2:
             self.data_folder = f"{folder}/two"
@@ -41,8 +41,10 @@ class UpsampleDataset(Dataset):
         self.lr_size = lr_size
         self.hr_size = scale * lr_size
 
+        self.steps = steps
+
     def __len__(self):
-        return self.batch_size
+        return self.batch_size * self.steps
 
     def __getitem__(self, _):
 

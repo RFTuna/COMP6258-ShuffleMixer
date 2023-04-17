@@ -9,11 +9,11 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
 def train(dat_folder, output_folder):
-    model = create_shuffle_mixer(tiny=True, four_times_scale=False)
+    model = create_shuffle_mixer(tiny=False, four_times_scale=True)
 
     trainer = Trainer(model, device, f"{dat_folder}/train", f"{dat_folder}/valid", f"{output_folder}/tensorboard",
-                  f"{output_folder}/checkpoints", lr_size=64, batch_size=16, iterations=300000, loss_iterations=10,
-                    val_iterations=10, plot_iterations=1000, checkpoint_epochs=100, learning_rate=5e-4, workers=1)
+                  f"{output_folder}/checkpoints", lr_size=64, batch_size=16, iterations=500, loss_iterations=5,
+                    val_iterations=10, plot_iterations=20, checkpoint_epochs=100, learning_rate=5e-4, workers=1)
 
     trainer.run()
 
