@@ -2,9 +2,24 @@
 
 Jos-Elliot Jeapes (jej1g19) & Samsom Yebio (sy1c20)
 
-This reproducibility report focuses on [ShuffleMixer: An Efficient ConvNet for Image Super-Resolution](https://arxiv.org/abs/2205.15175).
+This reproducibility report focuses on [ShuffleMixer: An Efficient ConvNet for Image Super-Resolution](https://arxiv.org/abs/2205.15175). It includes a new implementation of the model.
 
-![Alt text](block diagram.png) *ShuffleMixer architecture.*
+![](block%20diagram.png) *ShuffleMixer architecture.*
+
+## Example Output
+
+The most noticeable differences between the below images are the straight lines on the building (the roof especially) and the shadow edges.
+
+![](test_data/kitti.png) *The original image, taken from [Kitti](https://www.cvlibs.net/datasets/kitti/).*
+
+![](test_output/nearest%20kitti.png) *The input for each of the below images (the above image 4x bicubic downscaled).*
+
+![](test_output/bicubic%20kitti.png) *The output from bicubic upscaling.*
+
+![](test_output/model%20kitti.png) *The output from the model included in this repository.*
+
+![](test_output/pretrained%20kitti.png) *The output for a pretrained model from [The ShuffleMixer Github Repository](https://github.com/sunny2109/ShuffleMixer).*
+
 
 ## Files
 
