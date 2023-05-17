@@ -4,7 +4,11 @@ Jos-Elliot Jeapes (jej1g19) & Samsom Yebio (sy1c20)
 
 This reproducibility report focuses on [ShuffleMixer: An Efficient ConvNet for Image Super-Resolution](https://arxiv.org/abs/2205.15175).
 
-## Implementation Details
+![Alt text](block diagram.png) *ShuffleMixer architecture.*
+
+## Files
+
+### Implementation
 
 The *shuffle_mixer* folder contains the model implementation, custom data loader, and training code (with a separate file each).
 
@@ -16,7 +20,7 @@ Iridis was not used in the end, but the shell scripts were for calling the above
 
 The final checkpoint is provided, *350000.ckpt*.
 
-## Report
+### Report
 
 *main.pdf* is the final report, with *main.tex* and  *main.bib* existing as examples of report writing in LaTeX.
 
@@ -26,13 +30,13 @@ Everything in *test_output* was generated for the report appendix.
 
 *iclr2022* is the [ICLR](https://iclr.cc/) style folder and the images in *test_data* are from the datsets [Kitti](https://www.cvlibs.net/datasets/kitti/) and [Celeb A HQ](https://mmlab.ie.cuhk.edu.hk/projects/CelebA.html). These are included in the repo solely because they are required for the report to compile.
 
-## Running the Pretrained ShuffleMixer
+### Running the Pretrained ShuffleMixer
 
 [The ShuffleMixer Github Repository](https://github.com/sunny2109/ShuffleMixer) contains instructions on installing prerequisites, links to pretrained models, and everything else needed to test the pretrained ShuffleMixer model.
 
 *test_x4.yml* is a config for use with this repository, though it only serves as an example - the referenced folders and files do not exist in this repository. It was used to create images for the report appendix.
 
-## Missing Folders
+### Missing Folders
 
 The training writes to two folders, both subfolders of output:
 - *checkpoints* which, unsurprisingly, stores the model checkpoints,
