@@ -22,7 +22,7 @@ The final checkpoint is provided, *350000.ckpt*.
 
 Everything in *test_output* was generated for the report appendix. 
 
-*pavement.png* and *Upsampled HR Example.png* are both screenshots of the original paper, used in the report.
+*pavement.png* and *block diagram.png* are both screenshots of the original paper, used in the report.
 
 *iclr2022* is the [ICLR](https://iclr.cc/) style folder and the images in *test_data* are from the datsets [Kitti](https://www.cvlibs.net/datasets/kitti/) and [Celeb A HQ](https://mmlab.ie.cuhk.edu.hk/projects/CelebA.html). These are included in the repo solely because they are required for the report to compile.
 

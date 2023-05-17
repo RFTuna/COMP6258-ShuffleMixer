@@ -12,3 +12,4 @@ shuffle_mixer/__pycache__/
 *.log
 *.gz
 *.out
+team.txt
