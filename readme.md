@@ -1,6 +1,6 @@
 # COMP6258 Reproducability Challenge: ShuffleMixer
 
-Jos-Elliot Jeapes (jej1g19) & Samson Yebio (sy1c20)
+Jos-Elliot Jeapes (jej1g19) & Samsom Yebio (sy1c20)
 
 This reproducibility report focuses on [ShuffleMixer: An Efficient ConvNet for Image Super-Resolution](https://arxiv.org/abs/2205.15175).
 
