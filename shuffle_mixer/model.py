@@ -116,6 +116,7 @@ class Upsampler(nn.Module):
     def forward(self, x):
         x = self.conv(x)
         x = nn.functional.pixel_shuffle(x, 2)
+        x = nn.functional.silu(x)
         return x
 
 

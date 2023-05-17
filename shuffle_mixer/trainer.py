@@ -30,7 +30,7 @@ class Trainer:
     def __init__(self, model, device, train_path, valid_path, summary_path, checkpoint_path, lr_size=64, batch_size=64,
                  iterations=300000, loss_iterations=10, val_iterations=100, plot_iterations=1000, checkpoint_epochs=10,
                  learning_rate=5e-4, workers=4):
-        print(f'Training on device {device}')
+        print(f'Training on device {device}', flush=True)
 
         self.model = model.to(device)
 
@@ -115,7 +115,7 @@ class Trainer:
 
         start = datetime.now()
 
-        print(f'Training starting at {start}')
+        print(f'Training starting at {start}', flush=True)
 
         self.iterator = iter(self.train)
 
@@ -137,7 +137,7 @@ class Trainer:
                 self.model.train(True)
 
                 print(
-                    f'Reached step {step} in {datetime.now() - start}, with train loss {loss} and val loss {val_loss}')
+                    f'Reached step {step} in {datetime.now() - start}, with train loss {loss} and val loss {val_loss}', flush=True)
 
             if step % self.loss_iterations == 0:
                 self.writer.add_scalar("Loss/Train", loss, step)
@@ -151,4 +151,4 @@ class Trainer:
                     "loss": loss
                 }, f"{self.checkpoint_path}/{iteration}.ckpt")
 
-        print(f'Training finished in {datetime.now() - start}')
+        print(f'Training finished in {datetime.now() - start}', flush=True)

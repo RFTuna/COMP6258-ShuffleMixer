@@ -1,58 +1,41 @@
-# ShuffleMixer Log
+# COMP6258 Reproducability Challenge: ShuffleMixer
 
-## Initial Commit
+Jos-Elliot Jeapes (jej1g19) & Samson Yebio (sy1c20)
 
-### Current Issues
+This reproducibility report focuses on [ShuffleMixer: An Efficient ConvNet for Image Super-Resolution](https://arxiv.org/abs/2205.15175).
 
-**Training is too slow**
+## Implementation Details
 
-Would take about 5 days to run on jej1g19's desktop, at about a minute per epoch.
+The *shuffle_mixer* folder contains the model implementation, custom data loader, and training code (with a separate file each).
 
-Most of this time is a flat cost - it doesn't vary between model sizes and upsampling types.
+In the root folder, *downsample.py* and *rename.py* were used for preprocessing, as discussed in the report, and *main.py* is for training the model. *test_data.py* was used to create the images in the report appendix (except the pretrained output).
 
-The training steps finish in bursts, the length of which change as the number of data loader worker threads changes. Therefore, the issue seems to be with the data
+As usual, *requirements.txt* lists the required python libraries. A python 3.10 virtual environment was used.
 
-The only reasonable solution seems to be creating a 2X and 4X downscaled datasets so this step isn't done every iteration. This would very likely require writing a custom data loader class.
+Iridis was not used in the end, but the shell scripts were for calling the above python on Iridis. It is probably better to use the Iridis forums as a reference, but the shell scripts in the repository work as examples.
 
+The final checkpoint is provided, *350000.ckpt*.
 
-**VRAM Issues**
+## Report
 
-Training for 4X upsampling runs out of VRAM on jej1g19's desktop unless batch size is reduced (so that it no longer matches the original paper).
+*main.pdf* is the final report, with *main.tex* and  *main.bib* existing as examples of report writing in LaTeX.
 
-Training on Iridis5 would solve this, however currently it either takes almost for hours for one or debug output isn't working with slurm. 
+Everything in *test_output* was generated for the report appendix. 
 
-Possible solutions:
+*pavement.png* and *Upsampled HR Example.png* are both screenshots of the original paper, used in the report.
 
-- Fixing the data loading issues will help even more on Iridis5 as scratch access is likely very slow
-- Add more debug output (remove reliance on tqdm for timing information)
-- Parralelize to make the most of the four GPUs available
+*iclr2022* is the [ICLR](https://iclr.cc/) style folder and the images in *test_data* are from the datsets [Kitti](https://www.cvlibs.net/datasets/kitti/) and [Celeb A HQ](https://mmlab.ie.cuhk.edu.hk/projects/CelebA.html). These are included in the repo solely because they are required for the report to compile.
 
-### Contingency
+## Running the Pretrained ShuffleMixer
 
-If neither of the above issues can be fixed, the model can run on jej1g19's desktop overnight for a bit over a week - we would have something trained.
+[The ShuffleMixer Github Repository](https://github.com/sunny2109/ShuffleMixer) contains instructions on installing prerequisites, links to pretrained models, and everything else needed to test the pretrained ShuffleMixer model.
 
-### Notes
+*test_x4.yml* is a config for use with this repository, though it only serves as an example - the referenced folders and files do not exist in this repository. It was used to create images for the report appendix.
 
-From what training has been done, the model seems to be converging correctly.
+## Missing Folders
 
-Report exists but is poorly structured and in note form. 
+The training writes to two folders, both subfolders of output:
+- *checkpoints* which, unsurprisingly, stores the model checkpoints,
+- *tensorboard* which is the tensorboard log, containing loss curves and examples generated at set intervals.
 
-If the above issues can be sorted, and so training sped up, other aspects of the original paper could be reproduced - such as checking the effect of each part of the model (by removing them/changing to default).
-
-
-
-## Update 17/04
-
-### Custom DataLoader
-
-Custom data loader about halves the train time on jej1g19's desktop, yet to be tested on Iridis. Batch sizes are small and the bottleneck is definitely loading full images. It seems that parralelizing across GPUs would not help in this situation. 
-
-The only real solution would be to change the images to bitmaps, so that the cropped sections could be streamed from the disk - rather than loading the whole image and then cropping.
-
-### Notes
-
-At current, it seems to make sense to abandon the batch size used by the paper, and use the largest one that can be used for the standard model and 4X scale. This is because the output quality is more move obvious at the four times scale, for the standard model; it is the most impressive result of the original paper, so should be the reproduction target.
-
-TQDM is no longer used - timing print statements have been added which should improve logging on Iridis.
-
-Experimented with fft2 loss and its effects - loss curves are much better using the new version (the shape/gradient). Need to research what the paper actually implies.
+The training uses data from *data/train/original*, *data/train/four* (or two), and the same with valid in place of train. Start with the *original* folder in both, containing the relevant DIV2K and Flickr2K images. Then, run *rename.py* followed by *downsample.py* as shown in *prep.sh*. The *four* and *two* folders will be created, containing the 4x and 2x downsampled images respectively.

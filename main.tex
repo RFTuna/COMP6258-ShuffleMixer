@@ -1,6 +1,5 @@
 \documentclass{article}
 
-\usepackage{cleveref}
 
 
 \usepackage{iclr2022/iclr2022_conference,times}
@@ -8,34 +7,20 @@
 % Optional math commands from https://github.com/goodfeli/dlbook_notation.
 \input{iclr2022/math_commands.tex}
 
+\usepackage{graphicx}
 \usepackage{hyperref}
 \usepackage{url}
+\usepackage{cleveref}
+\usepackage{float}
 
-
-\title{Formatting Instructions for ICLR 2022 \\ Conference Submissions}
+\title{COMP6258 Reproducibility Report \\ ShuffleMixer}
 
 % Authors must not appear in the submitted version. They should be hidden
 % as long as the \iclrfinalcopy macro remains commented out below.
 % Non-anonymous submissions will be rejected without review.
 
-\author{Antiquus S.~Hippocampus, Natalia Cerebro \& Amelie P. Amygdale \thanks{ Use footnote for providing further information
-about author (webpage, alternative address)---\emph{not} for acknowledging
-funding agencies.  Funding acknowledgements go at the end of the paper.} \\
-Department of Computer Science\\
-Cranberry-Lemon University\\
-Pittsburgh, PA 15213, USA \\
-\texttt{\{hippo,brain,jen\}@cs.cranberry-lemon.edu} \\
-\And
-Ji Q. Ren \& Yevgeny LeNet \\
-Department of Computational Neuroscience \\
-University of the Witwatersrand \\
-Joburg, South Africa \\
-\texttt{\{robot,net\}@wits.ac.za} \\
-\AND
-Coauthor \\
-Affiliation \\
-Address \\
-\texttt{email}
+\author{Jos-Elliot Jeapes \& Samson Yebio \\
+\texttt{\{jej1g19,sy1c20\}@soton.ac.uk} \\
 }
 
 
@@ -66,114 +51,168 @@ Address \\
 
     \section{Introduction}
 
+    The paper this reproducibility report focuses on is `ShuffleMixer: An Efficient ConvNet for Image
+    Super-Resolution by' \citet{sun2022shufflemixer}.
+
     ShuffleMixer~\citep{sun2022shufflemixer}.
+
+    The paper describes a set of models: two families (tiny and standard) that can have different upsample factors (2x, 4x). This paper focuses on the most impressive, the standard 4x model.
 
     Brief outline of original paper and core ideas - no more repetition
 
-    \subsection{Target Questions}
+    \subsection{Target Questions} \label{sec:target questions}
+
+    The target questions of this report are:
+
+    \begin{itemize}
+        \item Does the model perform as presented on new data?
+        \item Can a model with the same architecture and performance be trained:
+        \begin{enumerate}
+            \item Using just the paper and references as a guide?
+            \item By referring to the open-source code?
+        \end{enumerate}
+    \end{itemize}
+
+    With (1) showing stronger reproducibility than (2). Reproducible aspects of the paper not covered by this report include:
+
+    \begin{itemize}
+        \item Complexity and performance compared to competing models,
+        \item Comparison of how model parameters effect performance,
+        \item Effectiveness of the novel aspects of the model. 
+    \end{itemize}
+
+    The first seems outside the scope of this report; it would also be testing the reproducibility of other papers. The others both require multiple training runs of a large model and would be uninteresting if the target questions don't show reproducibility.
 
     \subsection{Methodology}
 
-    \section{Implementation Details}
+    Two separate methodologies are used, one for both of the target questions. The first is an attempted reimplementation of the model using just the literature as guidance. The second is running the pretrained model on new data, and comparing the output to the expected results. The reimplemented model is also included in this second comparison.
 
-    \subsection{Implementation from Paper}
+    \section{Reimplementation} \label{sec: reimpl}
 
-    The first task was to implement the model using only the description in the original paper; the original implementation was used as a sanity check as described in \cref{subsec:comparison-with-original-implementation}.
+    The original paper includes a breakdown of the model, \cref{fig:original_block_diagram}, showing the structure at different levels of detail. 
 
-    The original paper has a useful block diagram, Figure 2, that breaks the model down into different levels of detail. For example, the `Shuffle Mixer Layer' is shown to include two `Channel Projection' blocks with Depthwise Convolution inbetween. In a seperate section of the figure, the `Channel Projection' block is broken down.
+    \begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{block diagram.png}
+    \caption{Block diagram showing the structure of ShuffleMixer, from \citet{sun2022shufflemixer}.} \label{fig:original_block_diagram}
+    \end{figure}
 
-    This lends itself well to splitting the implementation into separate blocks. Each such block was written as a seperate PyTorch Module, to make it simple to ensure the architecture is as described in the paper.
+    This figure was used to structure the reimplementation; each block is written a PyTorch module. For example, the `Shuffle Mixer Layer' is shown to include two `Channel Projection' blocks with Depthwise Convolution in between. In a separate section of the figure, the `Channel Projection' block is broken down. So, the ShuffleMixerLayer module includes two ChannelProjection modules.
 
-    The first line of their equation (1) is missing a LHS but the correct expression ($Z_0^1, Z_0^2$) can be inferred from the other lines, the aforementioned Figure and the fact that the line includes a $Split$ operation.
+    This makes it easy to quickly confirm that the reimplemented architecture is as described in the paper. A number of details are spread out in the text instead, but \cref{fig:original_block_diagram} is complete enough that this is easy to follow. This includes:
 
-    For this channel splitting operation, no ratio could be found in the paper. As in the original channel splitting work by \citet{ma2018shufflenet} the channels are split evenly, and they split evenly in Figure 2, an even split was choosen.
+    \begin{itemize}
+        \item The feature extraction block is a single 3x3 convolution layer,
+        \item 64x64 images are used for input during training,
+        \item The feature mixing block is repeated five times,
+        \item The upsampling is `only a convolutional layer of size 1x1 and a pixel shuffling layer'.
+    \end{itemize}
 
-    After the split tensor passes through a `Point-wise MLP' block it is concatanated with the other tensor and the channels are shuffled, using the operation given by \citet{zhang2017shufflenet}. The PyTorch library version of this operation is used.
+    The implementation of the depthwise convolution was based on the definition given in \citet{liu2022convnet} that depthwise convolution is a group convolution with a number of groups equal to the number of input channels.
 
-    Some details are given only in text.
+    \subsection{Implementation Issues} \label{sec: imp issues}
 
-    The feature extraction is a single 3x3 convolution layer.
+    A number of issues were encountered while reimplmenting ShuffleMixer. They are listed here, along with how they were handled.
 
-    The upsampling is `only a convolutional layer of size 1x1 and a pixel shuffling layer'.
+    \paragraph{Channel Shuffling Implementation} The model uses a channel shuffling layer, from \citet{zhang2017shufflenet}. PyTorch includes an implementation of channel shuffling, but it doesn't current support auto-differentiation. The is an open issue discussing this on the PyTorch repository \citep{PytorchChannelShuffleIssueGithub}. A different implementation was taken from \citet{KuangliuGitHub}.
 
+    \paragraph{Channel Splitting Ratio} For the channel splitting operation, no ratio was explictly given in the paper. In \cref{fig:original_block_diagram}, and in the original use of the operation \citep{ma2018shufflenet}, an equal split is used and so this was chosen.
 
-    Further details are provided in their 4.1 Datasets and implementation section. 64X64 images are used as the input (though because it is convolutional, input width could perhaps be variable between batches and for inference). The images are RGB, so 3 input channels. The fundemental building block is repeated five times. Two different models are described ShuffleMixer, and ShuffleMixer-Tiny. The quotation below described the differences between them:
+    \paragraph{Missing Parameters \& Ambiguity} The number of features extracted by the feature extraction layer and the depthwise convolution kernel size are not clearly given in the paper. The following quote is extracted from a section of the paper describing the difference between ShuffleMixer and ShuffleMixerTiny:
 
     \begin{quotation}
-        The number of channels and convolution kernel sizes is 64 and
-7 × 7 pixels for the ShuffleMixer model and 32 and 3 × 3 pixels for the ShuffleMixer-Tiny model.
+    The number of channels and convolution kernel sizes is 64 and
+    7 × 7 pixels for the ShuffleMixer model and 32 and 3 × 3 pixels for the ShuffleMixer-Tiny model.
     \end{quotation}
 
-    We fit these to the two missing values - the number of features and depth convolution size, but this is probably the part of the paper that was least clear. After all, at different points in the model the number of channels varies - and there are many different convolutions in the model.
+    Which can be mapped on to the aforementioned missing parameters. However, this is rather ambiguous; there are many convolutional layers in the model that the above values could be assigned to. Their meaning had to be inferred after implementing everything else.
 
-    The implementation of the depth convultion, as group convolution with a number of groups equal to the number of input channels, was found in \citet{liu2022convnet}.
+    \paragraph{Padding} A sanity check of the structure was done with TorchInfo and unexpected shapes were found. This was a padding issue, and quickly resolved.
 
+    \paragraph{FFT Parameters} The paper gives a loss function that includes the Fast Fourier Transform, but no parameters are given. As the data is two-dimensional, PyTorch's fft2 was used with default arguments.
 
-    A sanity check was done with TorchInfo, and convolultion padding issues were fixed. No other issues were found with the architecture.
+    \paragraph{Datasets} The dataset the original was trained on is DF2K, which is a combination of the high resolution images from DIV2K \citep{Agustsson_2017_CVPR_Workshops} and Flickr2K. No reference could be found for Flickr2K, the reference for it in the original paper \citep{DBLP:journals/corr/LimSKNL17} only mentions DIV2K. There is an issue for this on GitHub, \citet{LimbeeGithub}, but the links given as a solution no longer work. A copy of the dataset was eventually found at \citet{Ddlee_2019Dataset}.
 
-    \subsection{Comparison with Original Implementation}\label{subsec:comparison-with-original-implementation}
+    \subsection{Comparison with Original}
 
-    Unfortantely, their implementation does not perfectly follow the block structure they provide in Figure 2. This makes sense because a number of the conceptual blocks are very simple, and can be merged without producing complex code. It makes comparing slightly more difficult. An extreme example is the`feature extraction' block, which consists of nothing but a single conv layer.
+    Before training the reimplemented model, considering some of the issues above, it made sense to sanity check against the original code. Major differences would indicate that the model cannot be implemented just from the literature. 
 
-    Confirmation:
+    Unfortantely, their implementation does not perfectly follow the block structure from \cref{fig:original_block_diagram}. This isn't suprising as a number of the conceptual blocks are very simple and can be merged without decreasing code readability. An extreme example is the feature extraction block, which does not really need to be a separate module as it contains just one layer. 
 
-    Their version allows control over the ratio, but it is set to 2.
+    This did make comparing the models slightly more difficult. As an example, the Layer Norm and concatenation are split from their Channel Projection equivalent, and happen directly inside their Shuffle Mixer Layer. However, it seems that the overall architectures are identical.
 
-    They implement a layer norm that includes bias and gain as parameters
+    The parameters mentioned in \cref{sec: imp issues} can all be confirmed as correct. This is the splitting ratio, the depthwise kernel size and number of features. The loss function using fft2 can also be confirmed.
 
-    the norms and addition are split from the Mlp, but the order is the same.
+    There are some differences, however. Their code also supports x3 scaling, which isn't mentioned the paper. This doesn't affect the x4 model this report examines.
 
-    `kernel size' does indeed mean depth kernel size, same for features/channels.
+    The only affecting difference is that their upsampling block finishes with a SiLU layer, counter to the quote given earlier in \cref{sec: reimpl}. This change is carried over to the reimplementation.
 
-    Differences:
+    \subsection{Training}
 
-    They also supprt x3 scaling, not mentioned in the paper.
+    This has been separated from the above because of its nature. MORE INFO. The original model was trained on a V100, with batches of 64. Neither Iridis 5's Lyceum nor the authors' personal desktops could handle batches of 64, 64x64 images along with their 256x256 expected values. Through experimentation, the batch size was reduced to 16.
 
-    Their upsampling block finishes with SiLU. This isn't mentioned in the paper.
+    The training required loading very large images and cropping random 256x256 sections. The 256x256 images are augmented by rotation and flipping, before being downsampled to 64x64. 
+    
+    Using a PyTorch ImageFolder DataLoader, followed the necessary transformations, resulted in extremely slow training. A preprocessing script was written to 4x downsample the original dataset, and a custom DataLoader was written to load those images and perform the same transformations on both. This halved the training time.
 
-    We keep those differences.
+    The remaining bottleneck was loading the images themselves. A potential, unimplemented, solution would be to change the images to bitmaps, so that the cropped sections could be streamed from the disk rather than loading the whole image. 
 
+    With the bottleneck being the image loading, there was little difference between training on Iridis and the authors desktops so the training was done locally. The model was trained for 350,000 iterations (taking about 3 days). This is higher than the original implementation's 300,000 iterations, but the number of examples would be lower because of the smaller batch size. 
 
-%    https://github.com/sunny2109/ShuffleMixer/blob/39b79db88cac19219bba035a4dbd12af5afb31b8/basicsr/archs/shufflemixer_arch.py
+    \section{Testing}
 
+    Examples from the datasets Celeb A HQ \citep{liu2015faceattributes} and Kitti \citep{Geiger2012CVPR} are included in \cref{example output celeb,example output kitti} respectively. These are the first images of those datasets, so not handpicked. Neither of the models were trained on these datasets, and they were chosen as the content is very different: a human face, and an outdoor scene.
 
-    \section{Training}
+    In both cases, there is a gradual improvement from bicubic upsampling, to the  reimplemented model, to the pretrained model. This is most noticable in areas with straight lines and high contrast. For \cref{example output celeb} this is the teeth, eyelashes and hair, and for \cref{example output kitti} this is the shadows and the buildings. The roof of the building on the right is straight in both of the model outputs, but pixelated for the bicubic upsampling. Important, this can be seen in the examples shown in the original paper. \Cref{fig:original_output} is one such example, and shows that ShuffleMixer is much better at defining the gaps between pavement tiles than bicubic upsampling.
+    
+    It makes sense that the pretrained model is better than the reimplemented one as it has seen almost 4x as many examples. It is clear, however, that ShuffleMixer works better than bicubic upsampling on a variety of (new) data, and that so does the reimplemented version.
 
-    using the same data, DF2K, which is the HR images from DIV2k \citep{Agustsson_2017_CVPR_Workshops} and Flickr2K. Wierd issues finding a reference for this dataset - as the referenced paper seems unrelated (uses DIV2K). Shady download from git, but works.
-
-    %https://github.com/limbee/NTIRE2017/issues/25
-
-    Actually those links dont work
-
-    Have to use a script and creat a Flickr API key - honestly ridculous
-
-    Found download link:
-
-    % https://cvnote.ddlee.cc/2019/09/22/image-super-resolution-datasets
-
-    FFT parameters for loss not given, used torch defaults (and fft2).
-
-    Adam paratemers also not specfied, use defaults again.
-
-    Hit an issue! derivative for channel_shuffle is not implemented
-
-    discussed here:
-    %https://github.com/pytorch/pytorch/issues/67240
-
-    Without using distributed training for simplicties sake,
-    home computer is more useful than remote.
-
-    However, memory cannot handle batch size of 64 when doing 4X scaling.
-    So double the number of epochs, and se batch size to 32.
-    and times the learning rate by sqrt(1/2) \citep{krizhevsky2014weird}.
-
-
-
+    \begin{figure}
+        \centering
+        \includegraphics[width=0.55\textwidth]{pavement.png}
+        \caption{Examples output generated by ShuffleMixer and competitors, from \citet{sun2022shufflemixer}.} \label{fig:original_output}
+    \end{figure}
+    
     \section{Analysis}
 
+    \Cref{fig:original_block_diagram} does a lot of heavy lifting when it comes to reimplementing, and therefore reproducing, ShuffleMixer. There were a few issues around vague parameters but the information could all be infered from the paper even when not explictly stated. The exception being the missing SiLU, but it isn't unreasonable to expect a reader to assume that a convolutional layer doesn't use the activation function used by every other such layer in the model, not the linear one.
+
+    The fact that the pretrained model produced output that was superior, in a similar way to \cref{fig:original_output}, to bicubic upsampling indicates that the model handles new images well. The fact that the reimplemented model produced similar output to the pretrained model is a strong indicator of the reproducibility of ShuffleMixer.
+
+    Perhaps the final point related to reproducibility is the issue related to obtaining the dataset, the need to download it from a third party. There is no reason that a different dataset couldn't be used however, as long as it had the same variety and was at least the same size.
+
+    Overall, the investigation in this report indicates a high level of reproducibility. Both of the target questions given in \cref{sec:target questions} (and both (1) and so (2) for the second question) can be answered with a strong yes.
 
 
     \bibliography{main}
     \bibliographystyle{iclr2022/iclr2022_conference}
+
+    \newpage
+
+    \appendix
+
+    \section{Example Images}
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.4\textwidth]{test_output/nearest celeb_a_hq.png}
+        \includegraphics[width=0.4\textwidth]{test_output/bicubic celeb_a_hq.png}
+        \includegraphics[width=0.4\textwidth]{test_output/model celeb_a_hq.png}
+        \includegraphics[width=0.4\textwidth]{test_output/pretrained celeb_a_hq.png}
+        \includegraphics[width=0.4\textwidth]{test_data/celeb_a_hq.png}
+        \caption{Example images from the first image in the Celeb A HQ dataset (CITE). The original image (source: \citet{liu2015faceattributes}) is at the bottom, and the image at the top left is it 4x bicubic downsampled. Then, the top-right, mid-left and mid-right are the output of: 4x bicubic upsampling, the reimplemented model, and the pretrained model respectively.} \label{example output celeb}
+    \end{figure}
+
+    \begin{figure}
+        \centering
+        \includegraphics[width=\textwidth]{test_output/nearest kitti.png}
+        \includegraphics[width=\textwidth]{test_output/bicubic kitti.png}
+        \includegraphics[width=\textwidth]{test_output/model kitti.png}
+        \includegraphics[width=\textwidth]{test_output/pretrained kitti.png}
+        \includegraphics[width=\textwidth]{test_data/kitti.png}
+        \caption{Example images from the first image in the Kitti dataset (CITE). The original image (source: \citet{Geiger2012CVPR}) is at the bottom, and the image at the top is it 4x bicubic downsampled. Then, from top to bottom, the remaining images are the output of: 4x bicubic upsampling, the reimplemented model, and the pretrained model.} \label{example output kitti}
+    \end{figure}
+
+
+
 
 \end{document}
